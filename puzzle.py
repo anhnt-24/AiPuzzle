@@ -3,9 +3,11 @@ from tkinter import ttk, messagebox
 from PIL import Image, ImageTk
 import random
 from tkinter import filedialog
-from algorithm import  *
 import time
-import copy
+
+from click import command
+
+from Ida_algorithm import *
 
 class NPuzzleGUI(tk.Tk):
     def __init__(self):
@@ -28,6 +30,7 @@ class NPuzzleGUI(tk.Tk):
         self.show_numbers = tk.BooleanVar(value=True)
         self.board_state = []
         self.build_ui()
+        self.heuristic="manhattan"
 
 
     def change_image(self):
@@ -64,7 +67,7 @@ class NPuzzleGUI(tk.Tk):
         self.board_size_var = self.add_radio_section(control_frame, "Board size", ["3x3", "4x4", "5x5", "6x6"])
 
         self.heuristic_var = self.add_radio_section(control_frame, "Heuristic",
-                                                    ["heuristic1", "heuristic2", "heuristic3", "heuristic4"])
+                                                    ["manhattan", "misplaced", "linear_conflict", "diagonal","euclidean","custom"])
 
         tk.Label(control_frame, text="Kích thước ô:", bg="white").pack(pady=(10, 0))
         self.tile_size_var = tk.IntVar(value=100)
@@ -133,6 +136,10 @@ class NPuzzleGUI(tk.Tk):
         for opt in options:
             ttk.Radiobutton(section, text=opt, variable=var, value=opt).pack(anchor="w")
         return var
+
+    def on_heuristic_change(self):
+        print(self.heuristic_var.get())
+
 
     def new_game(self):
         self.output.delete('1.0', tk.END)
@@ -258,10 +265,11 @@ class NPuzzleGUI(tk.Tk):
     # cdmcdmcmdmcmdcmdmcmdmcmdc
 
     def solve(self):
+        self.heuristic = self.heuristic_var.get()  # Lấy giá trị
         self.output.insert(tk.END, "Đang giải...\n")
         self.output.update()
         start = time.time()
-        path = self.ida_star()
+        path = ida_star(self)
         end = time.time()
         self.timer_running = False
 
@@ -280,61 +288,6 @@ class NPuzzleGUI(tk.Tk):
 
         self.output.see(tk.END)
 
-    def ida_star(self):
-        def heuristic(state):
-            return manhattan(state)
-
-        def neighbors(state):
-            result = []
-            r, c = get_blank_pos(state)
-            dirs = [(-1, 0), (1, 0), (0, -1), (0, 1)]
-            for dr, dc in dirs:
-                nr, nc = r + dr, c + dc
-                if 0 <= nr < size and 0 <= nc < size:
-                    new_state = copy.deepcopy(state)
-                    new_state[r][c], new_state[nr][nc] = new_state[nr][nc], new_state[r][c]
-                    result.append((new_state, (nr, nc)))
-            return result
-
-        def dfs(path, g, threshold):
-            state = path[-1]
-            f = g + heuristic(state)
-            if f > threshold:
-                return f
-            if serialize(state) == goal_serial:
-                return path
-            min_cost = float("inf")
-            for neighbor, _ in neighbors(state):
-                if serialize(neighbor) in visited:
-                    continue
-                visited.add(serialize(neighbor))
-                res = dfs(path + [neighbor], g + 1, threshold)
-                if isinstance(res, list):
-                    return res
-                if res < min_cost:
-                    min_cost = res
-                visited.remove(serialize(neighbor))
-            return min_cost
-
-        start_state = copy.deepcopy(self.board_state)
-        goal = [[i * self.board_size + j + 1 for j in range(self.board_size)] for i in range(self.board_size)]
-        goal[-1][-1] = None
-        goal_serial = serialize(goal)
-        size = self.board_size
-
-        threshold = heuristic(start_state)
-        path = [start_state]
-        visited = set()
-        visited.add(serialize(start_state))
-
-        while True:
-            temp = dfs(path, 0, threshold)
-            if isinstance(temp, list):
-                return temp[1:]
-            if temp == float("inf"):
-                return None
-            threshold = temp
-
     def animate_solution(self, path):
         def do_step(i):
             if i >= len(path):
@@ -345,6 +298,7 @@ class NPuzzleGUI(tk.Tk):
             self.tiles = self.board_to_tiles(path[i])
             self.draw_board()
             self.after(300, lambda: do_step(i + 1))
+
         do_step(0)
 
     def board_to_tiles(self, state):
@@ -365,6 +319,7 @@ class NPuzzleGUI(tk.Tk):
             for j in range(self.board_size):
                 if self.board_state[i][j] is None:
                     self.blank_pos = (i, j)
+
 
 if __name__ == "__main__":
     app = NPuzzleGUI()

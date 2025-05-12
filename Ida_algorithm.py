@@ -1,7 +1,6 @@
 import copy
-from tkinter import messagebox
-
 from heuristic import *
+
 def ida_star(self):
     def heuristic(state):
         return choose_heuristic(self.heuristic,state)

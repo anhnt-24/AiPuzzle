@@ -15,7 +15,6 @@ def manhattan(state):
     return distance
 
 def misplaced_tiles(state):
-    """Heuristic đếm số ô sai vị trí."""
     count = 0
     size = len(state)
     for i in range(size):
@@ -30,7 +29,6 @@ def misplaced_tiles(state):
 
 
 def linear_conflict(state):
-    """Heuristic: Manhattan + xung đột tuyến tính (Linear Conflict)."""
     size = len(state)
     manh = manhattan(state)
     conflict = 0
@@ -48,7 +46,6 @@ def linear_conflict(state):
                 ):
                     conflict += 1
 
-    # Xung đột theo cột
     for j in range(size):
         col = [state[i][j] for i in range(size)]
         for i in range(size):
@@ -65,7 +62,6 @@ def linear_conflict(state):
 
 
 def diagonal_distance(state):
-    """Heuristic: Khoảng cách chéo (Diagonal Distance)."""
     size = len(state)
     distance = 0
     for i in range(size):
@@ -79,7 +75,6 @@ def diagonal_distance(state):
 
 
 def euclidean_distance(state):
-    """Heuristic: Khoảng cách Euclid."""
     size = len(state)
     distance = 0
     for i in range(size):
@@ -93,11 +88,9 @@ def euclidean_distance(state):
 
 
 def custom_heuristic(state):
-    """Heuristic: Kết hợp giữa Manhattan và Misplaced Tiles."""
     return manhattan(state) + misplaced_tiles(state)
 
 def choose_heuristic(heuristic_name, state):
-    """Chọn heuristic dựa trên tên."""
     if heuristic_name == "manhattan":
         return manhattan(state)
     elif heuristic_name == "misplaced":

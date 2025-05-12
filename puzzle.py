@@ -22,12 +22,12 @@ class NPuzzleGUI(tk.Tk):
         self.title("N-Puzzle Game")
         self.geometry("900x600")
         self.configure(bg="white")
-        self.board_size = 4
+        self.board_size = 3
         self.tile_size = 100
         self.image_path = "images/img.png"
         self.tiles = []
-        self.blank_pos = (3, 3)
-        self.show_numbers = tk.BooleanVar(value=True)
+        self.blank_pos = (2, 2)
+        self.show_numbers = tk.BooleanVar(value=False)
         self.board_state = []
         self.build_ui()
         self.heuristic="manhattan"
@@ -43,11 +43,9 @@ class NPuzzleGUI(tk.Tk):
                 img = Image.open(self.image_path).resize((250, 250))
                 self.small_img = ImageTk.PhotoImage(img)
 
-                # Xóa ảnh cũ
                 for widget in self.image_frame.winfo_children():
                     widget.destroy()
 
-                # Hiển thị ảnh mới
                 tk.Label(self.image_frame, text="Ảnh gốc", bg="white").pack()
                 self.img_label = tk.Label(self.image_frame, image=self.small_img, bg="white")
                 self.img_label.pack(pady=5)
@@ -61,16 +59,26 @@ class NPuzzleGUI(tk.Tk):
 
 
     def build_ui(self):
-        control_frame = tk.LabelFrame(self, text="Các lựa chọn", padx=10, pady=10, bg="white")
-        control_frame.pack(side=tk.LEFT, fill=tk.Y, padx=10, pady=10)
 
-        self.board_size_var = self.add_radio_section(control_frame, "Board size", ["3x3", "4x4", "5x5", "6x6"])
+        outer_left_frame = tk.Frame(self, bg="white")
+        outer_left_frame.pack(side=tk.LEFT, fill=tk.Y, padx=10, pady=10)
+
+        control_frame = tk.LabelFrame(outer_left_frame, text="Các lựa chọn", padx=10, pady=10, bg="white")
+        control_frame.pack(side=tk.LEFT, fill=tk.Y)
+
+        self.time_elapsed = 0
+        self.timer_running = False
+        self.timer_label = tk.Label(outer_left_frame, text="🕒 Thời gian: 0 giây", bg="white",
+                                    font=("Arial", 10, "bold"))
+        self.timer_label.pack(side=tk.RIGHT, anchor="n", padx=(10, 0), pady=(5, 0))
+
+        self.board_size_var = self.add_radio_section(control_frame, "Board size", ["3x3", "4x4"])
 
         self.heuristic_var = self.add_radio_section(control_frame, "Heuristic",
                                                     ["manhattan", "misplaced", "linear_conflict", "diagonal","euclidean","custom"])
 
         tk.Label(control_frame, text="Kích thước ô:", bg="white").pack(pady=(10, 0))
-        self.tile_size_var = tk.IntVar(value=100)
+        self.tile_size_var = tk.IntVar(value=120)
         tile_size_combo = ttk.Combobox(control_frame, textvariable=self.tile_size_var,
                                        values=[60, 80, 100, 120, 150], state="readonly")
         tile_size_combo.bind("<<ComboboxSelected>>", lambda e: self.draw_board())
@@ -87,10 +95,16 @@ class NPuzzleGUI(tk.Tk):
         self.output = tk.Text(bottom_frame, wrap="word", height=12, width=28)
         self.output.pack(padx=5, pady=5, fill=tk.BOTH, expand=True)
 
+        solution_frame = tk.LabelFrame(control_frame, text="Lời giải", bg="white")
+        solution_frame.pack(fill=tk.BOTH, expand=True, pady=(5, 5))
+
+        self.solution_entry = tk.Text(solution_frame, height=3, width=28, wrap="word")
+        self.solution_entry.pack(padx=5, pady=5, fill=tk.BOTH, expand=True)
+
         tk.Label(control_frame, text="", bg="white").pack(expand=True)
         ttk.Button(control_frame, text="Đổi ảnh", command=self.change_image).pack(pady=5, fill=tk.X)
         ttk.Button(control_frame, text="Ván mới", command=self.new_game).pack(pady=5, fill=tk.X)
-        ttk.Button(control_frame, text="Solve", command=self.solve).pack(pady=5, fill=tk.X)
+        ttk.Button(control_frame, text="Giải tự động", command=self.solve).pack(pady=5, fill=tk.X)
 
         self.game_frame = tk.Frame(self, bg="white")
         self.game_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=10, pady=10)
@@ -115,10 +129,7 @@ class NPuzzleGUI(tk.Tk):
             self.img_label.pack(pady=5)
         except:
             tk.Label(self.image_frame, text="[Không có ảnh]", bg="white").pack()
-        self.time_elapsed = 0  # thời gian tính bằng giây
-        self.timer_running = False
-        self.timer_label = tk.Label(control_frame, text="Thời gian: 0 giây", bg="white", font=("Arial", 10, "bold"))
-        self.timer_label.pack(pady=(10, 0))
+
 
     def update_timer(self):
         if self.timer_running:
@@ -132,7 +143,7 @@ class NPuzzleGUI(tk.Tk):
         section = tk.LabelFrame(parent, text=title, bg="white")
         section.pack(fill=tk.X, pady=5)
         var = tk.StringVar()
-        var.set(options[1] if "4x4" in options else options[0])
+        var.set(options[0] if "3x3" in options else options[0])
         for opt in options:
             ttk.Radiobutton(section, text=opt, variable=var, value=opt).pack(anchor="w")
         return var
@@ -144,7 +155,6 @@ class NPuzzleGUI(tk.Tk):
     def new_game(self):
         self.output.delete('1.0', tk.END)
 
-        # Hủy timer cũ nếu đang chạy
         if self.timer_after_id:
             self.after_cancel(self.timer_after_id)
             self.timer_after_id = None
@@ -165,7 +175,6 @@ class NPuzzleGUI(tk.Tk):
                            f"Tạo bàn mới {self.board_size}x{self.board_size} - kích thước ô {self.tile_size}px\n")
         self.output.see(tk.END)
 
-        # Bắt đầu lại timer
         self.timer_running = True
         self.update_timer()
 
@@ -248,6 +257,7 @@ class NPuzzleGUI(tk.Tk):
         flat_state = [num for row in self.board_state for num in row]
         self.timer_running = False
         return flat_state == expected
+
     def on_canvas_click(self, event):
         row, col = event.y // self.tile_size, event.x // self.tile_size
         br, bc = self.blank_pos
@@ -262,10 +272,8 @@ class NPuzzleGUI(tk.Tk):
             if self.is_solved():
                 messagebox.showinfo("Chúc mừng!", "Bạn đã giải thành công N-Puzzle!")
 
-    # cdmcdmcmdmcmdcmdmcmdmcmdc
-
     def solve(self):
-        self.heuristic = self.heuristic_var.get()  # Lấy giá trị
+        self.heuristic = self.heuristic_var.get()
         self.output.insert(tk.END, "Đang giải...\n")
         self.output.update()
         start = time.time()
@@ -273,20 +281,54 @@ class NPuzzleGUI(tk.Tk):
         end = time.time()
         self.timer_running = False
 
-
-
         if path:
-            self.output.insert(tk.END, f"Đã tìm thấy lời giải trong {len(path)} bước, mất {end - start:.2f}s\n")
+            self.output.insert(
+                tk.END,
+                f"Đã tìm thấy lời giải cho heuristic {self.heuristic} trong {len(path)} bước, mất {end - start:.2f}s\n"
+            )
             self.output.update()
-            if messagebox.askyesno("Xác nhận",
-                                   f"Đã tìm thấy lời giải trong {len(path)} bước.\nBạn có muốn hiển thị lời giải không?"):
+
+            choice = messagebox.askyesnocancel(
+                "Lựa chọn hiển thị",
+                f"Đã tìm thấy lời giải cho heuristic {self.heuristic} trong {len(path)} bước.\n\n"
+                "Yes: Hiển thị lời giải bằng hoạt ảnh\n"
+                "No: Chỉ in ra các bước di chuyển\n"
+                "Cancel: Không hiển thị gì cả"
+            )
+
+            if choice is True:  # Yes
                 self.animate_solution(path)
-            else:
-                self.output.insert(tk.END, "Người dùng đã chọn không hiển thị lời giải.\n")
+                self.show_solution_steps(path)
+            elif choice is False:  # No
+                self.show_solution_steps(path)
+
         else:
-            self.output.insert(tk.END, "Không tìm thấy lời giải.\n")
+            self.output.insert(tk.END, f"Không tìm thấy lời giải cho heuristic {self.heuristic}.\n")
 
         self.output.see(tk.END)
+
+    def show_solution_steps(self, path):
+        self.solution_entry.delete(1.0, tk.END)
+        path = [self.board_state] + path
+        for i in range(1, len(path)):
+            prev = path[i - 1]
+            curr = path[i]
+            moved_tile = None
+
+            for r in range(self.board_size):
+                for c in range(self.board_size):
+                    if prev[r][c] != curr[r][c]:
+                        if prev[r][c] is None:
+                            moved_tile = curr[r][c]
+                        elif curr[r][c] is None:
+                            moved_tile = prev[r][c]
+                        break
+                if moved_tile is not None:
+                    break
+
+            self.solution_entry.insert(tk.END, f"{i}. {moved_tile}\n")
+            self.solution_entry.update()
+            self.solution_entry.see(tk.END)
 
     def animate_solution(self, path):
         def do_step(i):

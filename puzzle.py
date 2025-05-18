@@ -5,13 +5,12 @@ import random
 from tkinter import filedialog
 import time
 
-from click import command
-
 from Ida_algorithm import *
 
 class NPuzzleGUI(tk.Tk):
     def __init__(self):
         super().__init__()
+        self.show_numbers_solution = tk.BooleanVar(value=False)
         self.timer_after_id = None
         self.small_img = None
         self.img_label = None
@@ -72,7 +71,7 @@ class NPuzzleGUI(tk.Tk):
                                     font=("Arial", 10, "bold"))
         self.timer_label.pack(side=tk.RIGHT, anchor="n", padx=(10, 0), pady=(5, 0))
 
-        self.board_size_var = self.add_radio_section(control_frame, "Board size", ["3x3", "4x4"])
+        self.board_size_var = self.add_radio_section(control_frame, "Chọn độ khó", ["3x3", "4x4"])
 
         self.heuristic_var = self.add_radio_section(control_frame, "Heuristic",
                                                     ["manhattan", "misplaced", "linear_conflict", "diagonal","euclidean","custom"])
@@ -272,6 +271,110 @@ class NPuzzleGUI(tk.Tk):
             if self.is_solved():
                 messagebox.showinfo("Chúc mừng!", "Bạn đã giải thành công N-Puzzle!")
 
+    def show_solution_details(self, path):
+        self.solution_window = tk.Toplevel(self)
+        self.solution_window.title("Chi tiết lời giải")
+        self.solution_window.geometry("800x650")
+
+        control_frame = tk.Frame(self.solution_window)
+        control_frame.pack(pady=5)
+
+        show_numbers_check = ttk.Checkbutton(
+            control_frame,
+            text="Hiển thị số thứ tự",
+            variable=self.show_numbers_solution,
+            command=lambda: self.display_solution_step(self.current_step)
+        )
+        show_numbers_check.pack(side=tk.LEFT, padx=10)
+
+        nav_frame = tk.Frame(self.solution_window)
+        nav_frame.pack(pady=5)
+
+        self.current_step = 0
+        self.solution_path = [self.board_state] + path
+
+        self.prev_btn = ttk.Button(nav_frame, text="<< Trước", command=self.show_prev_step)
+        self.prev_btn.pack(side=tk.LEFT, padx=5)
+
+        self.step_label = tk.Label(nav_frame, text=f"Bước {self.current_step}/{len(self.solution_path) - 1}")
+        self.step_label.pack(side=tk.LEFT, padx=5)
+
+        self.next_btn = ttk.Button(nav_frame, text="Tiếp >>", command=self.show_next_step)
+        self.next_btn.pack(side=tk.LEFT, padx=5)
+
+        self.solution_canvas = tk.Canvas(self.solution_window,
+                                         width=self.tile_size * self.board_size,
+                                         height=self.tile_size * self.board_size,
+                                         bg="white")
+        self.solution_canvas.pack(pady=10)
+
+        self.move_desc = tk.Text(self.solution_window, height=3, wrap="word")
+        self.move_desc.pack(fill=tk.X, padx=10, pady=5)
+
+        self.display_solution_step(0)
+
+    def display_solution_step(self, step):
+        state = self.solution_path[step]
+        self.solution_canvas.delete("all")
+
+        for i in range(self.board_size):
+            for j in range(self.board_size):
+                val = state[i][j]
+                x0, y0 = j * self.tile_size, i * self.tile_size
+                if val is not None:
+                    tile_img = self.tile_images_map[val]
+                    self.solution_canvas.create_image(x0, y0, anchor="nw", image=tile_img)
+                    if self.show_numbers_solution.get():  # Kiểm tra trạng thái hiển thị số
+                        self.solution_canvas.create_text(
+                            x0 + self.tile_size // 2,
+                            y0 + self.tile_size // 2,
+                            text=str(val),
+                            font=("Arial", 12, "bold"),
+                            fill="red"
+                        )
+                else:
+                    self.solution_canvas.create_rectangle(
+                        x0, y0, x0 + self.tile_size, y0 + self.tile_size, fill="green"
+                    )
+
+        self.prev_btn.config(state=tk.NORMAL if step > 0 else tk.DISABLED)
+        self.next_btn.config(state=tk.NORMAL if step < len(self.solution_path) - 1 else tk.DISABLED)
+        self.step_label.config(text=f"Bước {step}/{len(self.solution_path) - 1}")
+
+        if step > 0:
+            moved_tile = self.get_moved_tile(self.solution_path[step - 1], state)
+            self.move_desc.delete(1.0, tk.END)
+            self.move_desc.insert(tk.END, f"Bước {step}: Di chuyển ô số {moved_tile}\n")
+
+        self.prev_btn.config(state=tk.NORMAL if step > 0 else tk.DISABLED)
+        self.next_btn.config(state=tk.NORMAL if step < len(self.solution_path) - 1 else tk.DISABLED)
+        self.step_label.config(text=f"Bước {step}/{len(self.solution_path) - 1}")
+
+        if step > 0:
+            moved_tile = self.get_moved_tile(self.solution_path[step - 1], state)
+            self.move_desc.delete(1.0, tk.END)
+            self.move_desc.insert(tk.END, f"Bước {step}: Di chuyển ô số {moved_tile}\n")
+
+    def get_moved_tile(self, prev_state, curr_state):
+        for i in range(self.board_size):
+            for j in range(self.board_size):
+                if prev_state[i][j] != curr_state[i][j]:
+                    if prev_state[i][j] is None:
+                        return curr_state[i][j]
+                    elif curr_state[i][j] is None:
+                        return prev_state[i][j]
+        return None
+
+    def show_next_step(self):
+        if self.current_step < len(self.solution_path) - 1:
+            self.current_step += 1
+            self.display_solution_step(self.current_step)
+
+    def show_prev_step(self):
+        if self.current_step > 0:
+            self.current_step -= 1
+            self.display_solution_step(self.current_step)
+
     def solve(self):
         self.heuristic = self.heuristic_var.get()
         self.output.insert(tk.END, "Đang giải...\n")
@@ -291,16 +394,18 @@ class NPuzzleGUI(tk.Tk):
             choice = messagebox.askyesnocancel(
                 "Lựa chọn hiển thị",
                 f"Đã tìm thấy lời giải cho heuristic {self.heuristic} trong {len(path)} bước.\n\n"
-                "Yes: Hiển thị lời giải bằng hoạt ảnh\n"
-                "No: Chỉ in ra các bước di chuyển\n"
-                "Cancel: Không hiển thị gì cả"
+                "Yes: Giải ngay\n"
+                "No: Màn hình trực quan các bước di chuyển\n"
+                "Cancel: Hủy bỏ"
             )
 
-            if choice is True:  # Yes
+            if choice is True:
                 self.animate_solution(path)
                 self.show_solution_steps(path)
-            elif choice is False:  # No
+
+            elif choice is False:
                 self.show_solution_steps(path)
+                self.show_solution_details(path)
 
         else:
             self.output.insert(tk.END, f"Không tìm thấy lời giải cho heuristic {self.heuristic}.\n")

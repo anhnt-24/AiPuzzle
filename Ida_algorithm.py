@@ -1,9 +1,12 @@
 import copy
 from heuristic import *
 
+
 def ida_star(self):
+    self.visited_count = 0
+
     def heuristic(state):
-        return choose_heuristic(self.heuristic,state)
+        return choose_heuristic(self.heuristic, state)
 
     def neighbors(state):
         result = []
@@ -26,6 +29,7 @@ def ida_star(self):
             return path
         min_cost = float("inf")
         for neighbor, _ in neighbors(state):
+            self.visited_count += 1  # Tăng biến đếm
             if serialize(neighbor) in visited:
                 continue
             visited.add(serialize(neighbor))
@@ -55,5 +59,3 @@ def ida_star(self):
         if temp == float("inf"):
             return None
         threshold = temp
-
-

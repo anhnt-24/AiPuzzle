@@ -33,7 +33,6 @@ def linear_conflict(state):
     manh = manhattan(state)
     conflict = 0
 
-    # Xung đột theo hàng
     for i in range(size):
         current_row = state[i]
         for j in range(size):

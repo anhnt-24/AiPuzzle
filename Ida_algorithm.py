@@ -29,7 +29,7 @@ def ida_star(self):
             return path
         min_cost = float("inf")
         for neighbor, _ in neighbors(state):
-            self.visited_count += 1  # Tăng biến đếm
+            self.visited_count += 1
             if serialize(neighbor) in visited:
                 continue
             visited.add(serialize(neighbor))

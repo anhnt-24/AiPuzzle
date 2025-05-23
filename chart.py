@@ -14,7 +14,6 @@ heuristics = df3['Heuristic'].unique()
 
 colors = plt.cm.tab10.colors
 
-# 1. Biểu đồ cột về thời gian trung bình
 plt.figure(figsize=(12, 6))
 bar_width = 0.15
 index = np.arange(2)

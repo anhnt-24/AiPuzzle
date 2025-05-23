@@ -119,7 +119,6 @@ class OptimizedPuzzleEvaluator:
 
     def calculate_stats(self, results):
         successful = [r for r in results if r['success']]
-        success_rate = len(successful) / len(results) if results else 0
 
         if successful:
             avg_time = np.mean([r['time'] for r in successful])
@@ -145,11 +144,9 @@ class OptimizedPuzzleEvaluator:
             stats = self.calculate_stats(results)
             all_stats[heuristic] = stats
 
-        # Ghi vào file CSV
         with open(output_file, 'w', newline='') as f:
             writer = csv.writer(f)
 
-            # Viết header
             writer.writerow([
                 'Heuristic',
                 'Total Tested',
@@ -158,7 +155,6 @@ class OptimizedPuzzleEvaluator:
                 'Avg Visited States'
             ])
 
-            # Viết dữ liệu cho từng heuristic
             for heuristic, stats in all_stats.items():
                 writer.writerow([
                     heuristic.upper(),
@@ -168,7 +164,6 @@ class OptimizedPuzzleEvaluator:
                     f"{stats['avg_visited']:.0f}"
                 ])
 
-        print(f"\nEvaluation completed. Results saved to {output_file}")
         return all_stats
 
 

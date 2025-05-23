@@ -4,7 +4,6 @@ from PIL import Image, ImageTk
 import random
 from tkinter import filedialog
 import time
-
 from Ida_algorithm import *
 
 class NPuzzleGUI(tk.Tk):
@@ -142,13 +141,11 @@ class NPuzzleGUI(tk.Tk):
         section = tk.LabelFrame(parent, text=title, bg="white")
         section.pack(fill=tk.X, pady=5)
         var = tk.StringVar()
-        var.set(options[0] if "3x3" in options else options[0])
+        var.set(options[0])
         for opt in options:
             ttk.Radiobutton(section, text=opt, variable=var, value=opt).pack(anchor="w")
         return var
 
-    def on_heuristic_change(self):
-        print(self.heuristic_var.get())
 
 
     def new_game(self):
@@ -254,7 +251,6 @@ class NPuzzleGUI(tk.Tk):
     def is_solved(self):
         expected = list(range(1, self.board_size * self.board_size)) + [None]
         flat_state = [num for row in self.board_state for num in row]
-        self.timer_running = False
         return flat_state == expected
 
     def on_canvas_click(self, event):
@@ -269,6 +265,7 @@ class NPuzzleGUI(tk.Tk):
             self.output.see(tk.END)
 
             if self.is_solved():
+                self.timer_running = False
                 messagebox.showinfo("Chúc mừng!", "Bạn đã giải thành công N-Puzzle!")
 
     def show_solution_details(self, path):
@@ -346,14 +343,7 @@ class NPuzzleGUI(tk.Tk):
             self.move_desc.delete(1.0, tk.END)
             self.move_desc.insert(tk.END, f"Bước {step}: Di chuyển ô số {moved_tile}\n")
 
-        self.prev_btn.config(state=tk.NORMAL if step > 0 else tk.DISABLED)
-        self.next_btn.config(state=tk.NORMAL if step < len(self.solution_path) - 1 else tk.DISABLED)
-        self.step_label.config(text=f"Bước {step}/{len(self.solution_path) - 1}")
 
-        if step > 0:
-            moved_tile = self.get_moved_tile(self.solution_path[step - 1], state)
-            self.move_desc.delete(1.0, tk.END)
-            self.move_desc.insert(tk.END, f"Bước {step}: Di chuyển ô số {moved_tile}\n")
 
     def get_moved_tile(self, prev_state, curr_state):
         for i in range(self.board_size):
@@ -381,6 +371,9 @@ class NPuzzleGUI(tk.Tk):
         self.output.update()
         start = time.time()
         path = ida_star(self)
+
+
+        print(self.visited_count)
         end = time.time()
         self.timer_running = False
 
